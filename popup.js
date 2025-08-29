@@ -17,21 +17,37 @@ async function collectFromPage() {
   });
 }
 
+function houseNameFromUrl(url) {
+  try {
+    const u = new URL(url);
+    const pathname = u.pathname.split("/").filter(Boolean);
+    const houseName = pathname[3] || "file";
+    return houseName.endsWith(".fml") ? houseName : `${houseName}.fml`;
+  } catch {
+    return "file.fml";
+  }
+}
+
 async function renderList(urls) {
   const ul = document.getElementById("list");
   ul.innerHTML = "";
   urls = [...new Set(urls)];
+
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tabUrl = tabs[0]?.url || "";
+  const filename = houseNameFromUrl(tabUrl);
+
   for (const u of urls) {
     const li = document.createElement("li");
     const a = document.createElement("a");
     a.href = u;
-    a.textContent = u;
+    a.textContent = filename;
     a.target = "_blank";
 
     const btn = document.createElement("button");
     btn.textContent = "Download";
     btn.addEventListener("click", () =>
-      chrome.runtime.sendMessage({ type: "DOWNLOAD_ONE", url: u })
+      chrome.runtime.sendMessage({ type: "DOWNLOAD_ONE", url: u, filename })
     );
 
     li.appendChild(a);

@@ -51,7 +51,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ ok: true, total: msg.urls.length });
   }
   if (msg && msg.type === "DOWNLOAD_ONE" && typeof msg.url === "string") {
-    downloadOne(msg.url);
+    downloadOne(msg.url, msg.filename);
     sendResponse({ ok: true });
   }
   if (msg && msg.type === "GET_FML_URLS") {
@@ -90,9 +90,12 @@ function unique(arr) {
   return [...new Set(arr)];
 }
 
-async function downloadOne(url) {
+async function downloadOne(url, filename) {
   try {
-    await chrome.downloads.download({ url, filename: filenameFromUrl(url) });
+    await chrome.downloads.download({
+      url,
+      filename: filename || filenameFromUrl(url),
+    });
   } catch (e) {
     try {
       const res = await fetch(url, { credentials: "include" });
@@ -101,7 +104,7 @@ async function downloadOne(url) {
       const objectUrl = URL.createObjectURL(blob);
       await chrome.downloads.download({
         url: objectUrl,
-        filename: filenameFromUrl(url),
+        filename: filename || filenameFromUrl(url),
       });
       URL.revokeObjectURL(objectUrl);
     } catch (inner) {
@@ -114,8 +117,10 @@ function filenameFromUrl(url) {
   try {
     const u = new URL(url);
     const pathname = u.pathname.split("/").filter(Boolean);
-    const last = pathname[pathname.length - 1] || "file.fml";
-    return sanitizeFilename(last.endsWith(".fml") ? last : `${last}.fml`);
+    const houseName = pathname[3] || "file";
+    return sanitizeFilename(
+      houseName.endsWith(".fml") ? houseName : `${houseName}.fml`
+    );
   } catch {
     return sanitizeFilename(`file-${Date.now()}.fml`);
   }
