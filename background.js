@@ -2,14 +2,6 @@ const MENU_DOWNLOAD_ALL = "fml-download-all";
 
 const fmlUrls = {};
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: MENU_DOWNLOAD_ALL,
-    title: "Download all .fml files on page",
-    contexts: ["page", "selection", "link"],
-  });
-});
-
 chrome.webRequest.onCompleted.addListener(
   (details) => {
     console.log(
@@ -37,17 +29,9 @@ chrome.webRequest.onCompleted.addListener(
   { urls: ["<all_urls>"] }
 );
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === MENU_DOWNLOAD_ALL) {
-    if (tab && tab.id) {
-      await chrome.tabs.sendMessage(tab.id, { type: "COLLECT_FMLS" });
-    }
-  }
-});
-
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === "DOWNLOAD_FMLS" && Array.isArray(msg.urls)) {
-    downloadMany(msg.urls);
+    downloadMany(msg.urls, msg.filenames);
     sendResponse({ ok: true, total: msg.urls.length });
   }
   if (msg && msg.type === "DOWNLOAD_ONE" && typeof msg.url === "string") {
@@ -80,9 +64,9 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
 });
 
-async function downloadMany(urls) {
-  for (const u of unique(urls)) {
-    await downloadOne(u);
+async function downloadMany(urls, filenames = []) {
+  for (let i = 0; i < urls.length; i++) {
+    await downloadOne(urls[i], filenames[i]);
   }
 }
 
