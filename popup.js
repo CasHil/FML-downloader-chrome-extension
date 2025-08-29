@@ -60,11 +60,15 @@ async function renderList(urls) {
 document.getElementById("scan").addEventListener("click", async () => {
   setStatus("Aan het scannen...");
   const urls = await collectFromPage();
+  const downloadAllBtn = document.getElementById("downloadAll");
   if (urls.length === 0) {
     setStatus("Geen bestanden gevonden.");
     document.getElementById("list").innerHTML = "";
+    downloadAllBtn.disabled = true;
     return;
   }
+
+  downloadAllBtn.disabled = false;
 
   if (urls.length === 1) {
     setStatus("1 bestand gevonden.");
@@ -77,6 +81,16 @@ document.getElementById("scan").addEventListener("click", async () => {
 document.getElementById("downloadAll").addEventListener("click", async () => {
   setStatus("Start downloads...");
   const urls = await collectFromPage();
-  chrome.runtime.sendMessage({ type: "DOWNLOAD_FMLS", urls });
+
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tabUrl = tabs[0]?.url || "";
+  const baseFilename = houseNameFromUrl(tabUrl).replace(/\.fml$/, "");
+
+  const filenames = urls.map((u, i) =>
+    urls.length === 1 ? `${baseFilename}.fml` : `${baseFilename}-${i + 1}.fml`
+  );
+
+  chrome.runtime.sendMessage({ type: "DOWNLOAD_FMLS", urls, filenames });
+
   setStatus(`${urls.length} downloads in de wachtrij gezet.`);
 });
