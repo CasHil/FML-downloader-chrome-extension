@@ -1,0 +1,66 @@
+async function getCurrentTabId() {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tabs[0]?.id;
+}
+
+function setStatus(text) {
+  document.getElementById("status").textContent = text;
+}
+
+async function collectFromPage() {
+  const tabId = await getCurrentTabId();
+  if (!tabId) return [];
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "GET_FML_URLS", tabId }, (urls) => {
+      resolve(urls || []);
+    });
+  });
+}
+
+async function renderList(urls) {
+  const ul = document.getElementById("list");
+  ul.innerHTML = "";
+  urls = [...new Set(urls)];
+  for (const u of urls) {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = u;
+    a.textContent = u;
+    a.target = "_blank";
+
+    const btn = document.createElement("button");
+    btn.textContent = "Download";
+    btn.addEventListener("click", () =>
+      chrome.runtime.sendMessage({ type: "DOWNLOAD_ONE", url: u })
+    );
+
+    li.appendChild(a);
+    li.appendChild(document.createTextNode(" "));
+    li.appendChild(btn);
+    ul.appendChild(li);
+  }
+}
+
+document.getElementById("scan").addEventListener("click", async () => {
+  setStatus("Aan het scannen...");
+  const urls = await collectFromPage();
+  if (urls.length === 0) {
+    setStatus("Geen bestanden gevonden.");
+    document.getElementById("list").innerHTML = "";
+    return;
+  }
+
+  if (urls.length === 1) {
+    setStatus("1 bestand gevonden.");
+  } else {
+    setStatus(`${urls.length} bestanden gevonden`);
+  }
+  renderList(urls);
+});
+
+document.getElementById("downloadAll").addEventListener("click", async () => {
+  setStatus("Start downloads...");
+  const urls = await collectFromPage();
+  chrome.runtime.sendMessage({ type: "DOWNLOAD_FMLS", urls });
+  setStatus(`${urls.length} downloads in de wachtrij gezet.`);
+});
