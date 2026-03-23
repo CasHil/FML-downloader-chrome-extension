@@ -2,12 +2,7 @@ const BTN_CLASS = "fml-dl-btn";
 
 function isFmlLink(a) {
   if (!a || !a.href) return false;
-  try {
-    const url = new URL(a.href, location.href);
-    return url.pathname.toLowerCase().endsWith(".fml");
-  } catch {
-    return false;
-  }
+  return /\.fml([?#].*)?$/i.test(a.href);
 }
 
 function addButton(a) {

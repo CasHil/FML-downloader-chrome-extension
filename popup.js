@@ -19,10 +19,23 @@ async function collectFromPage() {
 
 function houseNameFromUrl(url) {
   try {
+    const match = url.match(/([^=\/?#]+\.fml)(?:[?#].*)?$/i);
+    if (match) return match[1];
+
     const u = new URL(url);
     const pathname = u.pathname.split("/").filter(Boolean);
-    const houseName = pathname[3] || "file";
-    return houseName.endsWith(".fml") ? houseName : `${houseName}.fml`;
+    let houseName = pathname[pathname.length - 1] || "file";
+
+    if (u.hostname.includes("funda.nl") && pathname[3]) {
+      houseName = pathname[3]
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    }
+
+    return houseName.toLowerCase().endsWith(".fml")
+      ? houseName
+      : `${houseName}.fml`;
   } catch {
     return "file.fml";
   }
@@ -47,7 +60,7 @@ async function renderList(urls) {
     const btn = document.createElement("button");
     btn.textContent = "Download";
     btn.addEventListener("click", () =>
-      chrome.runtime.sendMessage({ type: "DOWNLOAD_ONE", url: u, filename })
+      chrome.runtime.sendMessage({ type: "DOWNLOAD_ONE", url: u, filename }),
     );
 
     li.appendChild(a);
@@ -87,7 +100,7 @@ document.getElementById("downloadAll").addEventListener("click", async () => {
   const baseFilename = houseNameFromUrl(tabUrl).replace(/\.fml$/, "");
 
   const filenames = urls.map((u, i) =>
-    urls.length === 1 ? `${baseFilename}.fml` : `${baseFilename}-${i + 1}.fml`
+    urls.length === 1 ? `${baseFilename}.fml` : `${baseFilename}-${i + 1}.fml`,
   );
 
   chrome.runtime.sendMessage({ type: "DOWNLOAD_FMLS", urls, filenames });

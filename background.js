@@ -8,14 +8,14 @@ chrome.webRequest.onCompleted.addListener(
       "[FML] webRequest.onCompleted",
       details.url,
       "tabId:",
-      details.tabId
+      details.tabId,
     );
     if (/\.fml([?#].*)?$/i.test(details.url)) {
       const tabId = details.tabId;
       if (tabId < 0) {
         console.log(
           "[FML] Ignored .fml request not tied to a tab:",
-          details.url
+          details.url,
         );
         return;
       }
@@ -26,7 +26,7 @@ chrome.webRequest.onCompleted.addListener(
       console.log(`[FML] Captured .fml for tab ${tabId}:`, cleanUrl);
     }
   },
-  { urls: ["<all_urls>"] }
+  { urls: ["<all_urls>"] },
 );
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -51,7 +51,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (fmlUrls[tabId]) {
       delete fmlUrls[tabId];
       console.log(
-        `[FML] Cleared URLs for tab ${tabId} due to navigation/reload.`
+        `[FML] Cleared URLs for tab ${tabId} due to navigation/reload.`,
       );
     }
   }
@@ -99,11 +99,22 @@ async function downloadOne(url, filename) {
 
 function filenameFromUrl(url) {
   try {
+    const match = url.match(/([^=\/?#]+\.fml)(?:[?#].*)?$/i);
+    if (match) return sanitizeFilename(match[1]);
+
     const u = new URL(url);
     const pathname = u.pathname.split("/").filter(Boolean);
-    const houseName = pathname[3] || "file";
+    let houseName = pathname[pathname.length - 1] || "file";
+
+    if (u.hostname.includes("funda.nl") && pathname[3]) {
+      houseName = pathname[3]
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    }
+
     return sanitizeFilename(
-      houseName.endsWith(".fml") ? houseName : `${houseName}.fml`
+      houseName.toLowerCase().endsWith(".fml") ? houseName : `${houseName}.fml`,
     );
   } catch {
     return sanitizeFilename(`file-${Date.now()}.fml`);
