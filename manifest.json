@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FML Downloader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Vind en download .fml-bestanden vanaf elke website.",
   "permissions": ["downloads", "activeTab", "webRequest"],
   "host_permissions": ["<all_urls>"],
